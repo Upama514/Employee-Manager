@@ -1,56 +1,3 @@
-<script setup>
-import { ref, watch } from 'vue'
-import { employeeAPI } from '../services/api'
-
-const props = defineProps({
-  employee: {
-    type: Object,
-    default: null
-  },
-  isEditing: {
-    type: Boolean,
-    default: false
-  }
-})
-
-const emit = defineEmits(['employee-saved', 'cancel'])
-
-const formData = ref({
-  employee_name: '',
-  employee_salary: '',
-  employee_age: ''
-})
-
-const submitting = ref(false)
-
-// Watch for employee prop changes (when editing)
-watch(() => props.employee, (newEmployee) => {
-  if (newEmployee) {
-    formData.value = { ...newEmployee }
-  }
-}, { immediate: true })
-
-const submitForm = async () => {
-  if (submitting.value) return
-
-  submitting.value = true
-  try {
-    if (props.isEditing) {
-      await employeeAPI.updateEmployee(props.employee.id, formData.value)
-    } else {
-      await employeeAPI.createEmployee(formData.value)
-    }
-    emit('employee-saved')
-  } catch (error) {
-    console.error('Error saving employee:', error)
-    const errorMessage = error.response?.data?.message || 'Error saving employee. Please try again.'
-    alert(errorMessage)
-  } finally {
-    submitting.value = false
-  }
-}
-</script>
-
 <template>
   <form @submit.prevent="submitForm" class="bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -125,3 +72,65 @@ const submitForm = async () => {
   </form>
 </template>
 
+<script setup>
+import { ref, watch } from 'vue'
+import { employeeAPI } from '../services/api'
+
+const props = defineProps({
+  employee: {
+    type: Object,
+    default: null
+  },
+  isEditing: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const emit = defineEmits(['employee-saved', 'cancel'])
+
+const formData = ref({
+  employee_name: '',
+  employee_salary: '',
+  employee_age: ''
+})
+
+const submitting = ref(false)
+
+// Watch for employee prop changes (when editing)
+watch(() => props.employee, (newEmployee) => {
+  if (newEmployee) {
+    formData.value = { ...newEmployee }
+    // Convert numeric values to strings for input binding
+    formData.value.employee_salary = String(newEmployee.employee_salary)
+    formData.value.employee_age = String(newEmployee.employee_age)
+  }
+}, { immediate: true })
+
+const submitForm = async () => {
+  if (submitting.value) return
+
+  submitting.value = true
+  try {
+    // Convert string values back to numbers
+    const submitData = {
+      ...formData.value,
+      employee_salary: Number(formData.value.employee_salary),
+      employee_age: Number(formData.value.employee_age)
+    }
+
+    if (props.isEditing && props.employee) {
+      await employeeAPI.updateEmployee(props.employee.id, submitData)
+    } else {
+      await employeeAPI.createEmployee(submitData)
+    }
+    emit('employee-saved')
+  } catch (error) {
+    console.error('Error saving employee:', error)
+    const errorMessage = error.response?.data?.message || error.message || 'Error saving employee. Please try again.'
+    alert(errorMessage)
+  } finally {
+    submitting.value = false
+  }
+}
+</script>

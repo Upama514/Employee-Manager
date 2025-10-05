@@ -8,11 +8,10 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  //timeout: 10000, // 10 second timeout
 });
 
-// Mock data as fallback
-const mockEmployees = [
+// Initial mock data
+const initialMockEmployees = [
   {
     id: 1,
     employee_name: "Tiger Nixon",
@@ -50,6 +49,24 @@ const mockEmployees = [
   }
 ];
 
+// Helper functions for localStorage
+const getEmployeesFromStorage = () => {
+  try {
+    const stored = localStorage.getItem('employeeManager_employees');
+    return stored ? JSON.parse(stored) : initialMockEmployees;
+  } catch {
+    return initialMockEmployees;
+  }
+};
+
+const saveEmployeesToStorage = (employees) => {
+  try {
+    localStorage.setItem('employeeManager_employees', JSON.stringify(employees));
+  } catch (error) {
+    console.warn('Failed to save employees to localStorage:', error);
+  }
+};
+
 // Helper function to simulate API delay
 const simulateDelay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -60,6 +77,12 @@ export const employeeAPI = {
       console.log('Attempting to fetch employees from API...');
       const response = await api.get('/employees');
       console.log('API response received:', response.data);
+      
+      // Save API data to localStorage for consistency
+      if (response.data && response.data.data) {
+        saveEmployeesToStorage(response.data.data);
+      }
+      
       return response.data;
     } catch (error) {
       console.warn('API request failed, using mock data:', error.message);
@@ -67,11 +90,12 @@ export const employeeAPI = {
       // Simulate network delay for realistic experience
       await simulateDelay(1000);
       
-      // Return mock data as fallback
+      // Return stored data as fallback
+      const employees = getEmployeesFromStorage();
       return {
         status: 'success',
-        data: mockEmployees,
-        message: 'Using mock data due to API limitations'
+        data: employees,
+        message: 'Using local data due to API limitations'
       };
     }
   },
@@ -87,14 +111,21 @@ export const employeeAPI = {
       
       await simulateDelay(500);
       
-      // Mock successful creation
+      // Get current employees
+      const employees = getEmployeesFromStorage();
+      
+      // Create new employee with unique ID
       const newEmployee = {
-        id: Math.max(...mockEmployees.map(e => e.id)) + 1,
+        id: Math.max(...employees.map(e => e.id), 0) + 1,
         ...employeeData,
         profile_image: ""
       };
       
-      mockEmployees.push(newEmployee);
+      // Add to employees array
+      employees.push(newEmployee);
+      
+      // Save to localStorage
+      saveEmployeesToStorage(employees);
       
       return {
         status: 'success',
@@ -115,13 +146,24 @@ export const employeeAPI = {
       
       await simulateDelay(500);
       
-      // Mock update
-      const index = mockEmployees.findIndex(emp => emp.id === parseInt(id));
+      // Get current employees
+      const employees = getEmployeesFromStorage();
+      
+      // Find and update employee
+      const index = employees.findIndex(emp => emp.id === parseInt(id));
       if (index !== -1) {
-        mockEmployees[index] = { ...mockEmployees[index], ...employeeData };
+        employees[index] = { 
+          ...employees[index], 
+          ...employeeData,
+          id: employees[index].id // Preserve original ID
+        };
+        
+        // Save to localStorage
+        saveEmployeesToStorage(employees);
+        
         return {
           status: 'success',
-          data: mockEmployees[index],
+          data: employees[index],
           message: 'Updated locally (API unavailable)'
         };
       }
@@ -141,12 +183,20 @@ export const employeeAPI = {
       
       await simulateDelay(500);
       
-      // Mock delete
-      const index = mockEmployees.findIndex(emp => emp.id === parseInt(id));
+      // Get current employees
+      const employees = getEmployeesFromStorage();
+      
+      // Find and delete employee
+      const index = employees.findIndex(emp => emp.id === parseInt(id));
       if (index !== -1) {
-        mockEmployees.splice(index, 1);
+        const deletedEmployee = employees.splice(index, 1)[0];
+        
+        // Save to localStorage
+        saveEmployeesToStorage(employees);
+        
         return {
           status: 'success',
+          data: deletedEmployee,
           message: 'Deleted locally (API unavailable)'
         };
       }
@@ -166,16 +216,26 @@ export const employeeAPI = {
       
       await simulateDelay(500);
       
-      const employee = mockEmployees.find(emp => emp.id === parseInt(id));
+      const employees = getEmployeesFromStorage();
+      const employee = employees.find(emp => emp.id === parseInt(id));
       if (employee) {
         return {
           status: 'success',
           data: employee,
-          message: 'Using mock data (API unavailable)'
+          message: 'Using local data (API unavailable)'
         };
       }
       
       throw new Error('Employee not found');
     }
+  },
+
+  // Utility function to reset to initial data (for testing)
+  resetToInitialData() {
+    saveEmployeesToStorage(initialMockEmployees);
+    return {
+      status: 'success',
+      message: 'Reset to initial data'
+    };
   }
 };

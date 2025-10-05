@@ -1,3 +1,24 @@
+<template>
+  <div>
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">
+      {{ isEditing ? 'Edit Employee' : 'Add New Employee' }}
+    </h1>
+    
+    <div v-if="loading && isEditing" class="text-center py-8">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <p class="text-gray-600 mt-2">Loading employee data...</p>
+    </div>
+    
+    <EmployeeForm
+      v-else
+      :employee="employeeData"
+      :is-editing="isEditing"
+      @employee-saved="handleEmployeeSaved"
+      @cancel="handleCancel"
+    />
+  </div>
+</template>
+
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -29,6 +50,9 @@ onMounted(async () => {
 })
 
 const handleEmployeeSaved = () => {
+  // Show success message
+  alert('Employee saved successfully!')
+  // Redirect to employee list
   router.push('/employees')
 }
 
@@ -36,25 +60,3 @@ const handleCancel = () => {
   router.push('/employees')
 }
 </script>
-
-<template>
-  <div>
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">
-      {{ isEditing ? 'Edit Employee' : 'Add New Employee' }}
-    </h1>
-    
-    <div v-if="loading && isEditing" class="text-center py-8">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <p class="text-gray-600 mt-2">Loading employee data...</p>
-    </div>
-    
-    <EmployeeForm
-      v-else
-      :employee="employeeData"
-      :is-editing="isEditing"
-      @employee-saved="handleEmployeeSaved"
-      @cancel="handleCancel"
-    />
-  </div>
-</template>
-
