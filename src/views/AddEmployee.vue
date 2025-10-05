@@ -52,8 +52,12 @@ onMounted(async () => {
 const handleEmployeeSaved = () => {
   // Show success message
   alert('Employee saved successfully!')
-  // Redirect to employee list
-  router.push('/employees')
+  
+  // Force refresh by navigating with a timestamp to bypass cache
+  router.push({
+    path: '/employees',
+    query: { refresh: Date.now() } // This forces a component reload
+  })
 }
 
 const handleCancel = () => {
